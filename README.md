@@ -70,18 +70,6 @@ python demo.py
 
 ---
 
-## Key Results (paper targets)
-
-| Method            | Detection Rate | False Alarm Rate |
-|-------------------|---------------|-----------------|
-| Traditional (BDD) | 84.2%         | —               |
-| SVM               | 88.5%         | —               |
-| Random Forest     | 89.3%         | —               |
-| Standard CNN      | 92.1%         | —               |
-| **Proposed**      | **96.8%**     | **< 3%**        |
-
----
-
 ## Configuration
 
 Edit `configs/config.yaml` to change:
