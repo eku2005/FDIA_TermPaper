@@ -77,3 +77,96 @@ Edit `configs/config.yaml` to change:
 - Attack parameters (intensity range, sparsity)
 - Training hyperparameters (lr, batch size, epochs)
 - Test system (ieee14 / ieee30 / ieee57)
+
+---
+
+## Generalizability and Extensibility
+
+The core deep learning architecture in this repository is fully generic, while the data generation pipeline is modularly tied to specific power grid topologies.
+
+### 1. Deep Learning Model (Fully Generic)
+
+The underlying neural network (`CNNAttentionDetector`) is **dataset-agnostic**.
+
+- The model dynamically infers:
+  - Number of measurement channels (`m`)
+  - Temporal sliding window size (`w`)
+
+These are automatically extracted from the initialized `DataLoader` during training.
+
+If time-series data of different dimensions is provided:
+
+- The **1D Convolutional layers** automatically adapt to the new input shape.
+- The **Attention mechanism** scales its input weights accordingly.
+- No hard-coded architectural changes are required.
+
+This makes the model reusable across different grid sizes and measurement configurations without modifying the core deep learning code.
+
+---
+
+### 2. Data Generation Pipeline (Topology-Specific)
+
+Because this project simulates physically realistic and stealthy **False Data Injection Attacks (FDIA)** using the Jacobian formulation:
+
+\[
+a = Hc
+\]
+
+the dataset generation process depends on the physical topology of the power grid.
+
+Currently, the code is tested and validated for:
+
+- IEEE 14-bus system  
+- IEEE 30-bus system  
+
+---
+
+## Extending to a New Power System
+
+To apply the framework to a new grid (for example, IEEE 118-bus), **no changes to the machine learning model are needed.**
+
+You only need to:
+
+### Step 1 — Define a New Grid Topology
+
+Add the physical parameters of the new system inside:
+
+```python
+data/grid_topology.py
+```
+
+Create a new `GridSystem` class containing:
+
+- Bus active/reactive loads  
+- Branch resistance/reactance data  
+- Any topology-specific parameters  
+
+---
+
+### Step 2 — Register the New System
+
+Add the new system to the `get_system()` factory function.
+
+---
+
+## What Happens Automatically
+
+Once defined, the pipeline will automatically:
+
+- Construct the new admittance matrices  
+- Simulate the state estimation baseline  
+- Generate localized stealth attack vectors  
+- Produce the FDIA dataset  
+- Train and evaluate the model on the new topology  
+
+No modifications to the deep learning architecture are required.
+
+---
+
+## Summary
+
+- **Model architecture:** Fully generic and topology-independent  
+- **Data generation:** Modular and extensible to new grids  
+- **Current support:** IEEE 14-bus, IEEE 30-bus  
+- **Extending to new systems:** Add topology definition only — training pipeline remains unchanged
+
