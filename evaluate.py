@@ -84,7 +84,7 @@ def eval_by_type_and_intensity(detector, cfg, device, train_stats):
                 attack_types         = [atype],
                 seed                 = 999,
             )
-            ds     = FDIADataset(X, R, y, normalise=True)
+            ds     = FDIADataset(X, R, y, normalise=True, stats=train_stats)
             loader = DataLoader(ds, batch_size=128, shuffle=False)
             m_res  = detector.evaluate_loader(loader)
             results[atype][intensity] = m_res
@@ -191,17 +191,23 @@ def sensitivity_analysis(detector, cfg):
 #  Temporal trace for Fig 3
 # ─────────────────────────────────────────────────────────────
 
-def temporal_trace(detector, cfg, device, n_steps=100):
+def temporal_trace(detector, cfg, device, train_stats, n_steps=100):
     sys_name  = cfg["system"]["name"]
     noise_std = cfg["system"]["noise_std"]
     data_cfg  = cfg["data"]
     w         = data_cfg["window_size"]
+
+    x_mean, x_std = train_stats
+    x_mean, x_std = x_mean.numpy(), x_std.numpy()
 
     X_norm, R_norm, _ = generate_dataset(
         sys_name, n_steps + w, w, noise_std,
         attack_intensity_min=0.30, attack_intensity_max=0.30,
         attack_types=["targeted"], seed=123,
     )
+
+    X_norm = (X_norm - x_mean) / x_std
+
     # Keep only normal samples
     idx_normal = np.where(_ == 0)[0]
     if len(idx_normal) < n_steps:
@@ -212,6 +218,9 @@ def temporal_trace(detector, cfg, device, n_steps=100):
         attack_intensity_min=0.30, attack_intensity_max=0.30,
         attack_types=["targeted"], seed=456,
     )
+
+    X_att = (X_att - x_mean) / x_std
+
     idx_attack = np.where(_ == 1)[0]
 
     D_normal = []
@@ -331,7 +340,7 @@ def evaluate(cfg: dict, checkpoint: str, device: str = "cpu"):
 
     # ── 3. Temporal trace (Fig 3) ────────────────────────────
     print("\n[Fig3] Generating temporal trace …")
-    D_norm, D_att = temporal_trace(detector, cfg, device)
+    D_norm, D_att = temporal_trace(detector, cfg, device, train_ds.stats)
     plot_fig3(D_norm, D_att, threshold=detector.theta, attack_start=40)
 
     # ── 4. Sensitivity (Fig 5) ──────────────────────────────

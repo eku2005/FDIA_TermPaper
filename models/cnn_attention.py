@@ -109,15 +109,15 @@ class CNNAttentionDetector(nn.Module):
 
         # ── Residual branch projection ────────────────────────
         # Takes residuals as secondary input (concatenated to context)
-        self.res_proj = nn.Sequential(
-            nn.Linear(m_measurements * window_size, attention_dim),
-            nn.ReLU(inplace=True),
-            nn.Dropout(p=dropout),
-        )
+        # self.res_proj = nn.Sequential(
+        #     nn.Linear(m_measurements * window_size, attention_dim),
+        #     nn.ReLU(inplace=True),
+        #     nn.Dropout(p=dropout),
+        # )
 
         # ── Output layer (eq. 11) ────────────────────────────
         # Input: concat(context_v, res_features) → 1
-        self.fc_out = nn.Linear(in_ch + attention_dim, 1)
+        self.fc_out = nn.Linear(in_ch, 1)
 
         self._init_weights()
 
@@ -156,13 +156,13 @@ class CNNAttentionDetector(nn.Module):
         F  = self.convs(xc)             # (batch, last_filter, w)
         v, _ = self.attention(F)        # (batch, last_filter)
 
-        # ── Residual branch ──────────────────────────────────
-        r_flat = r.reshape(batch, -1)   # (batch, w*m)
-        r_feat = self.res_proj(r_flat)  # (batch, attention_dim)
+        # # ── Residual branch ──────────────────────────────────
+        # r_flat = r.reshape(batch, -1)   # (batch, w*m)
+        # r_feat = self.res_proj(r_flat)  # (batch, attention_dim)
 
         # ── Merge & classify ─────────────────────────────────
-        combined = torch.cat([v, r_feat], dim=-1)      # (batch, last_filter + attn_dim)
-        logit    = self.fc_out(combined).squeeze(-1)   # (batch,)
+        # combined = torch.cat([v, r_feat], dim=-1)      # (batch, last_filter + attn_dim)
+        logit    = self.fc_out(v).squeeze(-1)   # (batch,)
         y        = torch.sigmoid(logit)
 
         return y

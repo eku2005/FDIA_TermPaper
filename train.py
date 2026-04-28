@@ -191,7 +191,7 @@ def train(cfg: dict):
         if epoch % 10 == 0 or epoch == 1:
             print(f"  Epoch {epoch:3d}/{epochs} | "
                   f"Loss {tr_loss:.4f}/{val_loss:.4f} | "
-                  f"DR {dr*100:.1f}% FAR {far*100:.1f}% F1 {f1:.4f} | "
+                  f"DR {dr*100:.1f}% F1 {f1:.4f} | "
                   f"{elapsed:.1f}s")
 
         # Early stopping

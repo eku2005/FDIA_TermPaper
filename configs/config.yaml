@@ -3,28 +3,28 @@
 # ─────────────────────────────────────────────────────────────
 
 system:
-  name: ieee30          # ieee14 | ieee30 | ieee57
-  noise_std: 0.01       # measurement noise (1% of true values)
+  name: ieee30 # ieee14 | ieee30 | ieee57
+  noise_std: 0.01 # measurement noise (1% of true values)
 
 data:
-  n_train: 8000         # training samples (50% normal, 50% attack)
-  n_test: 2000          # test samples
-  window_size: 10       # w: sliding window of consecutive measurements
-  attack_intensity_min: 0.10   # 10% of nominal measurement value
-  attack_intensity_max: 0.50   # 50%
+  n_train: 8000 # training samples (50% normal, 50% attack)
+  n_test: 2000 # test samples
+  window_size: 10 # w: sliding window of consecutive measurements
+  attack_intensity_min: 0.10 # 10% of nominal measurement value
+  attack_intensity_max: 0.50 # 50%
   attack_types:
     - targeted
     - random
     - sparse
-  sparse_k: 5           # number of measurements manipulated in sparse attack
+  sparse_k: 5 # number of measurements manipulated in sparse attack
   seed: 42
 
 model:
-  conv_filters: [32, 64, 128]   # filters per convolutional layer
+  conv_filters: [32, 64, 128] # filters per convolutional layer
   kernel_size: 3
-  attention_dim: 64             # d in the paper
+  attention_dim: 64 # d in the paper
   dropout: 0.3
-  beta: 0.5                     # weighting param for residual statistic
+  beta: 0.5 # weighting param for residual statistic
 
 training:
   epochs: 100
@@ -32,11 +32,11 @@ training:
   lr: 0.001
   weight_decay: 1.0e-4
   early_stopping_patience: 15
-  scheduler: cosine             # cosine | step | none
-  device: auto                  # auto | cpu | cuda
+  scheduler: cosine # cosine | step | none
+  device: auto # auto | cpu | cuda
 
 detection:
-  threshold_fpr: 0.03           # target false positive rate for threshold selection
+  threshold_fpr: 0.03 # target false positive rate for threshold selection
 
 paths:
   results_dir: results/

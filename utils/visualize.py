@@ -58,7 +58,7 @@ def plot_fig1(results_by_type, save=True):
     ax.set_xlabel("Attack Intensity (%)")
     ax.set_ylabel("Detection Rate (%)")
     ax.set_title("(a) Detection Rate vs Attack Intensity")
-    ax.set_ylim(0,100)
+    ax.set_ylim(0,105)
     ax.legend()
     ax.grid(True,alpha=.3)
 
@@ -90,7 +90,7 @@ def plot_fig1(results_by_type, save=True):
     ax.set_xlabel("Attack Intensity (%)")
     ax.set_ylabel("False Alarm Rate (%)")
     ax.set_title("(b) FAR vs Attack Intensity")
-    ax.set_ylim(0,100)
+    ax.set_ylim(0,10)
     ax.legend()
     ax.grid(True,alpha=.3)
 

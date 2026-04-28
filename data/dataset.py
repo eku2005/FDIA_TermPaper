@@ -49,6 +49,91 @@ def generate_timeseries(
     return Z
 
 
+# def generate_dataset(
+#     system_name: str,
+#     n_samples: int,
+#     window_size: int = 10,
+#     noise_std: float = 0.01,
+#     attack_intensity_min: float = 0.10,
+#     attack_intensity_max: float = 0.50,
+#     attack_types: Optional[List[str]] = None,
+#     sparse_k: int = 5,
+#     seed: int = 42,
+# ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+#     """
+#     Generate (X, r, y) dataset.
+
+#     Returns
+#     -------
+#     X : (n_samples, window_size, m)   measurement windows
+#     R : (n_samples, window_size, m)   residual windows
+#     y : (n_samples,)                  labels (0/1)
+#     """
+#     if attack_types is None:
+#         attack_types = ["targeted", "random", "sparse"]
+
+#     rng      = np.random.default_rng(seed)
+#     system   = get_system(system_name)
+#     est      = WLSEstimator(system, noise_std=noise_std)
+#     attacker = AttackGenerator(est.H, sparse_k=sparse_k, seed=seed)
+
+#     m = est.m
+#     n_normal = n_samples // 2
+#     n_attack = n_samples - n_normal
+
+#     X_list, R_list, y_list = [], [], []
+
+#     # ── Normal samples ──────────────────────────────────────
+#     # Generate a long timeseries and extract sliding windows
+#     total_steps = n_normal + window_size + 100
+#     Z_normal    = generate_timeseries(est, total_steps, rng)
+#     residuals_n = np.zeros_like(Z_normal)
+#     for t in range(total_steps):
+#         x_hat           = est.estimate(Z_normal[t])
+#         residuals_n[t]  = est.residual(Z_normal[t], x_hat)
+
+#     for i in range(n_normal):
+#         start     = rng.integers(0, total_steps - window_size)
+#         X_list.append(Z_normal[start: start + window_size])
+#         R_list.append(residuals_n[start: start + window_size])
+#         y_list.append(0)
+
+#     # ── Attack samples ──────────────────────────────────────
+#     per_type = n_attack // len(attack_types)
+#     for atype in attack_types:
+#         n_this = per_type if atype != attack_types[-1] else (n_attack - per_type * (len(attack_types) - 1))
+#         total_steps_a = n_this + window_size + 100
+#         Z_base        = generate_timeseries(est, total_steps_a, rng)
+
+#         for i in range(n_this):
+#             intensity = rng.uniform(attack_intensity_min, attack_intensity_max)
+#             attacker.intensity = intensity
+
+#             start = rng.integers(0, total_steps_a - window_size)
+#             window_z = Z_base[start: start + window_size].copy()
+#             window_r = np.zeros_like(window_z)
+
+#             # Inject attack into a random subset of time steps in the window
+#             attack_start = rng.integers(0, window_size // 2)
+#             for t in range(window_size):
+#                 if t >= attack_start:
+#                     za, _ = attacker.generate(window_z[t], attack_type=atype)
+#                     window_z[t] = za
+#                 x_hat        = est.estimate(window_z[t])
+#                 window_r[t]  = est.residual(window_z[t], x_hat)
+
+#             X_list.append(window_z)
+#             R_list.append(window_r)
+#             y_list.append(1)
+
+#     X = np.array(X_list, dtype=np.float32)   # (N, w, m)
+#     R = np.array(R_list, dtype=np.float32)   # (N, w, m)
+#     y = np.array(y_list, dtype=np.float32)   # (N,)
+
+#     # Shuffle
+#     perm = rng.permutation(len(y))
+#     return X[perm], R[perm], y[perm]
+
 def generate_dataset(
     system_name: str,
     n_samples: int,
@@ -62,12 +147,6 @@ def generate_dataset(
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Generate (X, r, y) dataset.
-
-    Returns
-    -------
-    X : (n_samples, window_size, m)   measurement windows
-    R : (n_samples, window_size, m)   residual windows
-    y : (n_samples,)                  labels (0/1)
     """
     if attack_types is None:
         attack_types = ["targeted", "random", "sparse"]
@@ -84,33 +163,30 @@ def generate_dataset(
     X_list, R_list, y_list = [], [], []
 
     # ── Normal samples ──────────────────────────────────────
-    # Generate a long timeseries and extract sliding windows
-    total_steps = n_normal + window_size + 100
-    Z_normal    = generate_timeseries(est, total_steps, rng)
-    residuals_n = np.zeros_like(Z_normal)
-    for t in range(total_steps):
-        x_hat           = est.estimate(Z_normal[t])
-        residuals_n[t]  = est.residual(Z_normal[t], x_hat)
-
+    # Generate a fresh random grid state for EVERY normal window
     for i in range(n_normal):
-        start     = rng.integers(0, total_steps - window_size)
-        X_list.append(Z_normal[start: start + window_size])
-        R_list.append(residuals_n[start: start + window_size])
+        Z_chunk = generate_timeseries(est, window_size, rng)
+        residuals_chunk = np.zeros_like(Z_chunk)
+        
+        for t in range(window_size):
+            x_hat = est.estimate(Z_chunk[t])
+            residuals_chunk[t] = est.residual(Z_chunk[t], x_hat)
+
+        X_list.append(Z_chunk)
+        R_list.append(residuals_chunk)
         y_list.append(0)
 
     # ── Attack samples ──────────────────────────────────────
     per_type = n_attack // len(attack_types)
     for atype in attack_types:
         n_this = per_type if atype != attack_types[-1] else (n_attack - per_type * (len(attack_types) - 1))
-        total_steps_a = n_this + window_size + 100
-        Z_base        = generate_timeseries(est, total_steps_a, rng)
-
+        
         for i in range(n_this):
             intensity = rng.uniform(attack_intensity_min, attack_intensity_max)
             attacker.intensity = intensity
 
-            start = rng.integers(0, total_steps_a - window_size)
-            window_z = Z_base[start: start + window_size].copy()
+            # Generate a fresh random grid state for EVERY attack window
+            window_z = generate_timeseries(est, window_size, rng)
             window_r = np.zeros_like(window_z)
 
             # Inject attack into a random subset of time steps in the window
@@ -119,8 +195,9 @@ def generate_dataset(
                 if t >= attack_start:
                     za, _ = attacker.generate(window_z[t], attack_type=atype)
                     window_z[t] = za
-                x_hat        = est.estimate(window_z[t])
-                window_r[t]  = est.residual(window_z[t], x_hat)
+                
+                x_hat       = est.estimate(window_z[t])
+                window_r[t] = est.residual(window_z[t], x_hat)
 
             X_list.append(window_z)
             R_list.append(window_r)
@@ -133,8 +210,6 @@ def generate_dataset(
     # Shuffle
     perm = rng.permutation(len(y))
     return X[perm], R[perm], y[perm]
-
-
 # ─────────────────────────────────────────────────────────────
 #  PyTorch Dataset
 # ─────────────────────────────────────────────────────────────
@@ -165,15 +240,15 @@ class FDIADataset(Dataset):
             if stats is None:
                 self.x_mean = self.X.mean(dim=(0, 1), keepdim=True)
                 self.x_std  = self.X.std(dim=(0, 1), keepdim=True).clamp(min=1e-8)
-                self.r_mean = self.R.mean(dim=(0, 1), keepdim=True)
-                self.r_std  = self.R.std(dim=(0, 1), keepdim=True).clamp(min=1e-8)
+                # self.r_mean = self.R.mean(dim=(0, 1), keepdim=True)
+                # self.r_std  = self.R.std(dim=(0, 1), keepdim=True).clamp(min=1e-8)
             else:
-                self.x_mean, self.x_std, self.r_mean, self.r_std = stats
+                self.x_mean, self.x_std = stats
 
             self.X = (self.X - self.x_mean) / self.x_std
-            self.R = (self.R - self.r_mean) / self.r_std
+            # self.R = (self.R - self.r_mean) / self.r_std
 
-        self.stats = (self.x_mean, self.x_std, self.r_mean, self.r_std) \
+        self.stats = (self.x_mean, self.x_std) \
                      if normalise else None
 
     def __len__(self) -> int:
