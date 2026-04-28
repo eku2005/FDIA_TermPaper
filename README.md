@@ -149,20 +149,6 @@ Add the new system to the `get_system()` factory function.
 
 ---
 
-## What Happens Automatically
-
-Once defined, the pipeline will automatically:
-
-- Construct the new admittance matrices  
-- Simulate the state estimation baseline  
-- Generate localized stealth attack vectors  
-- Produce the FDIA dataset  
-- Train and evaluate the model on the new topology  
-
-No modifications to the deep learning architecture are required.
-
----
-
 ## Summary
 
 - **Model architecture:** Fully generic and topology-independent  
