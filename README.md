@@ -3,7 +3,6 @@
 Implementation of:  
 **"Deep Learning-Based Detection of False Data Injection Attacks in Smart Grid State Estimation"**  
 Bi, Chen, Li — IEEE IMCEC 2025
-
 ---
 
 ## Project Structure
